@@ -25,6 +25,7 @@ public class Paxos implements PaxosRMI, Runnable{
     Map<Integer, Instance> allInst;
     int seqId;
     Object seqVal;
+    final int MAJORITY = Peers.length/2 + 1;
 
     class Instance{
         int n_p;
@@ -128,11 +129,11 @@ public class Paxos implements PaxosRMI, Runnable{
         if(seq < Min()){
             return;
         } 
+        //mutex.lock();
         seqId = seq;
         seqVal = value;
-        
-        run();
-
+        Thread t = new Thread(this);
+        t.start();
     }
 
     @Override
@@ -140,40 +141,61 @@ public class Paxos implements PaxosRMI, Runnable{
         //Your code here
         int mySeqId;
         Object mySeqVal;
+        mySeqId = seqId;
+        mySeqVal = seqVal;
+        //mutex.unlock();
+
         while(1){
-            boolean status = sendPrepare(mySeqId);
+            int currProposeNum = genProNum(mySeqId);
+            Object toSendVal = endPrepare(mySeqId, currProposeNum, myVal);
+            boolean status = (toSendVal != null);
             if(status){
-                status = sendAccept();
+                status = sendAccept(mySeqId, currProposeNum, toSendVal);
                 if(status){
                     sendDecide();
                     break;
                 }
             }
-            if(Status(seqId).state == State.Decided) break;
+            if(Status(mySeqId).state == State.Decided) break;
         }
     }
 
-    private boolean sendPrepare(int mySeqId){
-        mutex.lock();
-        if(!allInst.containsKey(mySeqId)){
-            allInst.put(seqId, new Instance());
+    private Object sendPrepare(int mySeqId, int currProposeNum, Object myVal){
+        int n_a = Integer.MIN_VALUE;
+        Object v_a = myVal;
+        int okNum = 0;
+        
+        for(int i = 0; i < ports.length; i++){
+            Response currResp;
+            if(i == me){
+                currResp = Prepare(new Request(mySeqId, currProposeNum, null));
+            } else {
+                currResp = call("Prepare", new Request(mySeqId, currProposeNum, null), i);
+            }
+
+            if(currResp != null && currResp.stat == true && currResp.n == currProposeNum){
+                okNum++;
+                if(currResp.v_a != null && currResp.n_a > n_a){
+                    n_a = currResp.n_a;
+                    v_a = currResp.v_a;
+                }
+            } 
         }
-        Instance currInst = allInst.get(mySeqId);
-        int currProposerNum = genProNum(mySeqId);
 
-        for(int i = 0; i < peers.length; i++){
-            
+        if(okNum >= MAJORITY){
+            return v_a;
+        } else {
+            return null;
         }
-
-
-
     }
 
     private int genProNum(int mySeqId){
 
     }
 
-    private boolean sendAccept(){
+    private boolean sendAccept(int mySeqId, int currProposeNum, Object toSendVal){
+        for()
+
 
     }
 
