@@ -138,8 +138,10 @@ public class Paxos implements PaxosRMI, Runnable{
     @Override
     public void run(){
         //Your code here
+        int mySeqId;
+        Object mySeqVal;
         while(1){
-            boolean status = sendPrepare();
+            boolean status = sendPrepare(mySeqId);
             if(status){
                 status = sendAccept();
                 if(status){
@@ -151,7 +153,33 @@ public class Paxos implements PaxosRMI, Runnable{
         }
     }
 
-    
+    private boolean sendPrepare(int mySeqId){
+        mutex.lock();
+        if(!allInst.containsKey(mySeqId)){
+            allInst.put(seqId, new Instance());
+        }
+        Instance currInst = allInst.get(mySeqId);
+        int currProposerNum = genProNum(mySeqId);
+
+        for(int i = 0; i < peers.length; i++){
+            
+        }
+
+
+
+    }
+
+    private int genProNum(int mySeqId){
+
+    }
+
+    private boolean sendAccept(){
+
+    }
+
+    private void sendDecide(){
+
+    }
 
 
     // RMI handler
