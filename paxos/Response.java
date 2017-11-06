@@ -9,7 +9,23 @@ import java.io.Serializable;
 public class Response implements Serializable {
     static final long serialVersionUID=2L;
     // your data here
-
+    boolean stat;
+    int n;
+    int n_a;
+    Object v_a;
 
     // Your constructor and methods here
+    Response(boolean stat, int n, int n_a, Object v_a){
+        this.stat = stat;
+        this.n = n;
+        this.n_a = n_a;
+        this.v_a = v_a;
+    }
+
+    Response(boolean stat){
+        this.stat = stat;
+        this.n = 0;
+        this.n_a = 0;
+        this.v_a = null;
+    }
 }

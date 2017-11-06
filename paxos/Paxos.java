@@ -22,7 +22,23 @@ public class Paxos implements PaxosRMI, Runnable{
     AtomicBoolean unreliable;// for testing
 
     // Your data here
+    Map<Integer, Instance> allInst;
+    int seqId;
+    Object seqVal;
 
+    class Instance{
+        int n_p;
+        int n_a;
+        Object v_a;
+        retStatus status;
+
+        Instance(){
+            this.n_p = Integer.MIN_VALUE;
+            this.n_a = Integer.MIN_VALUE;
+            this.v_a = null;
+            this.status = new retStatus(State.Pending, null);
+        }
+    } 
 
     /**
      * Call the constructor to create a Paxos peer.
@@ -39,7 +55,9 @@ public class Paxos implements PaxosRMI, Runnable{
         this.unreliable = new AtomicBoolean(false);
 
         // Your initialization code here
-
+        allInst = new HashMap<Integer, Instance>();
+        seqId = -1;
+        seqVal = null;
 
         // register peers, do not modify this part
         try{
@@ -107,27 +125,86 @@ public class Paxos implements PaxosRMI, Runnable{
      */
     public void Start(int seq, Object value){
         // Your code here
+        if(seq < Min()){
+            return;
+        } 
+        seqId = seq;
+        seqVal = value;
+        
+        run();
+
     }
 
     @Override
     public void run(){
         //Your code here
+        while(1){
+            boolean status = sendPrepare();
+            if(status){
+                status = sendAccept();
+                if(status){
+                    sendDecide();
+                    break;
+                }
+            }
+            if(Status(seqId).state == State.Decided) break;
+        }
     }
+
+    
+
 
     // RMI handler
     public Response Prepare(Request req){
         // your code here
+        mutex.lock();
+        if(!allInst.containsKey(req.instId)){
+            allInst.put(req.instId, new Instance());
+        }
+        Instance currInst = allInst.get(req.instId);
+
+        if(req.n > currInst.n_p){
+            currInst.n_p = req.n;
+            mutex.unlock();
+            return new Response(true, req.n, currInst.n_a, currInst.v_a);
+        } else {
+            mutex.unlock();
+            return new Response(false);
+        }
 
     }
 
     public Response Accept(Request req){
         // your code here
+        mutex.lock();
+        if(!allInst.containsKey(req.instId)){
+            allInst.put(req.instId, new Instance());
+        }
+        Instance currInst = allInst.get(req.instId);
+
+        if(req.n >= currInst.n_p){
+            currInst.n_p = req.n;
+            currInst.n_a = req.n;
+            currInst.v_a = req.v;
+            mutex.unlock();
+            return new Response(true)；
+        } else {
+            mutex.unlock();
+            return new Response(false);
+        }
 
     }
 
     public Response Decide(Request req){
         // your code here
-
+        mutex.lock();
+        if(!allInst.containsKey(req.instId)){
+            allInst.put(req.instId, new Instance());
+        }
+        Instance currInst = allInst.get(req.instId);
+        currInst.status.state = State.Decided;
+        mutex.unlock();
+        return new Response(true)；
     }
 
     /**
