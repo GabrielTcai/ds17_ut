@@ -4,6 +4,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.rmi.registry.Registry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
+import java.lang.*
 
 /**
  * This class is the main class you need to implement paxos instances.
@@ -14,6 +15,11 @@ public class Paxos implements PaxosRMI, Runnable{
     String[] peers; // hostname
     int[] ports; // host port
     int me; // index into peers[]
+    //static int proNum = 0;
+    public static long startTime;
+    static {
+        startTime = System.nanoTime(); 
+    }
 
     Registry registry;
     PaxosRMI stub;
@@ -189,8 +195,12 @@ public class Paxos implements PaxosRMI, Runnable{
         }
     }
 
-    private int genProNum(int mySeqId){
-
+    private long genProNum(int mySeqId){
+        return (System.nanoTime() - startTime);
+        //mutex.lock();
+        //int num = proNum++;
+        //mutex.unlock();
+        //return num;
     }
 
     private boolean sendAccept(int mySeqId, int currProposeNum, Object toSendVal){
