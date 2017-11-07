@@ -11,19 +11,19 @@ public class Request implements Serializable {
     static final long serialVersionUID=1L;
     // Your data here
     int instId;
-    int n; 
+    long n;
     int portId;
     int maxDone;
     Object v;
 
     // Your constructor and methods here
-    Request(int instId, int n, Object v){
+    Request(int instId, long n, Object v){
         this.instId = instId;
         this.n = n;
         this.v = v;
     }
 
-    Request(int instId, int n, int portId, int maxDone, Object v){
+    Request(int instId, long n, int portId, int maxDone, Object v){
         this.instId = instId;
         this.n = n;
         this.portId = portId;

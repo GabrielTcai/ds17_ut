@@ -10,12 +10,12 @@ public class Response implements Serializable {
     static final long serialVersionUID=2L;
     // your data here
     boolean stat;
-    int n;
-    int n_a;
+    long n;
+    long n_a;
     Object v_a;
 
     // Your constructor and methods here
-    Response(boolean stat, int n, int n_a, Object v_a){
+    Response(boolean stat, long n, long n_a, Object v_a){
         this.stat = stat;
         this.n = n;
         this.n_a = n_a;
