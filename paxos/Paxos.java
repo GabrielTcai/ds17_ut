@@ -32,6 +32,7 @@ public class Paxos implements PaxosRMI, Runnable{
     int seqId;
     Object seqVal;
     final int MAJORITY = Peers.length/2 + 1;
+    int[] dones;
 
     class Instance{
         int n_p;
@@ -65,6 +66,10 @@ public class Paxos implements PaxosRMI, Runnable{
         allInst = new HashMap<Integer, Instance>();
         seqId = -1;
         seqVal = null;
+        dones = new int[ports.length];
+        for(int i = 0; i < ports.length; i++){
+            dones[i] = MIN_VALUE;
+        }
 
         // register peers, do not modify this part
         try{
@@ -227,9 +232,9 @@ public class Paxos implements PaxosRMI, Runnable{
         for(int i = 0; i < ports.length; i++){
             //Response currResp;
             if(i == me){
-                Decide(new Request(mySeqId, currProposeNum, toSendVal));
+                Decide(new Request(mySeqId, currProposeNum, me, dones[me], toSendVal));
             } else {
-                call("Decide", new Request(mySeqId, currProposeNum, toSendVal), i);
+                call("Decide", new Request(mySeqId, currProposeNum, me, dones[me], toSendVal), i);
             }
         }
 
@@ -286,6 +291,7 @@ public class Paxos implements PaxosRMI, Runnable{
         Instance currInst = allInst.get(req.instId);
         currInst.status.state = State.Decided;
         currInst.status.v = req.v;
+        dones[req.portId] = req.maxDone;
 
         mutex.unlock();
         return new Response(true)；
@@ -299,6 +305,11 @@ public class Paxos implements PaxosRMI, Runnable{
      */
     public void Done(int seq) {
         // Your code here
+        mutex.lock();
+        if(seq > dones[me]){
+            dones[me] = seq;
+        }
+        mutex.unlock();
     }
 
 
@@ -346,7 +357,23 @@ public class Paxos implements PaxosRMI, Runnable{
      */
     public int Min(){
         // Your code here
+        int minDone = Integer.MAX_VALUE;
+        for(int i = 0; i < dones.length; i++){
+            if(minDone > dones[i]){
+                minDone = dones[i];
+            }
+        }
 
+        mutex.lock();
+        for(int i = 0; i < minDone; i++){
+            if(allInst.containsKey(req.instId)){
+                //Instance currInst = allInst.get(req.instId);
+                //currInst.status.state = Forgotten;
+                allInst.remove(req.instId);
+            }
+        }
+        mutex.unlock();
+        return minDone+1;
     }
 
 
