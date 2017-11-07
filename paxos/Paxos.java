@@ -3,7 +3,9 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.server.UnicastRemoteObject;
 import java.rmi.registry.Registry;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -34,6 +36,16 @@ public class Paxos implements PaxosRMI, Runnable{
     Object seqVal;
     final int MAJORITY;
     int[] dones;
+    Queue<Arg> q;
+
+    class Arg{
+        int seq;
+        Object val;
+        Arg(int seq, Object val){
+            this.seq = seq;
+            this.val = val;
+        }
+    }
 
     class Instance{
         long n_p;
@@ -72,6 +84,7 @@ public class Paxos implements PaxosRMI, Runnable{
         for(int i = 0; i < ports.length; i++){
             dones[i] = -1;
         }
+        q = new LinkedList<Arg>();
 
         // register peers, do not modify this part
         try{
@@ -139,12 +152,16 @@ public class Paxos implements PaxosRMI, Runnable{
      */
     public void Start(int seq, Object value){
         // Your code here
+        //System.out.println(me + "start seq: " + seq);
         if(seq < Min()){
             return;
         } 
-        //mutex.lock();
-        seqId = seq;
-        seqVal = value;
+        mutex.lock();
+        //System.out.println(me + "start seq: " + seq);
+        //seqId = seq;
+        //seqVal = value;
+        q.offer(new Arg(seq, value));
+        mutex.unlock();
         Thread t = new Thread(this);
         t.start();
     }
@@ -154,16 +171,22 @@ public class Paxos implements PaxosRMI, Runnable{
         //Your code here
         int mySeqId;
         Object mySeqVal;
-        mySeqId = seqId;
-        mySeqVal = seqVal;
-        //mutex.unlock();
+        mutex.lock();
+        Arg currArg = q.poll();
+        mutex.unlock();
+        mySeqId = currArg.seq;
+        mySeqVal = currArg.val;
+        //System.out.println(me + "run seq: " + mySeqId);
 
         while(true){
             long currProposeNum = genProNum(mySeqId);
+            //System.out.println(me + " propose num: " + currProposeNum);
             Object toSendVal = sendPrepare(mySeqId, currProposeNum, mySeqVal);
             boolean status = (toSendVal != null);
+            //System.out.println(me + " returned Val: " + status + " for " + currProposeNum);
             if(status){
                 status = sendAccept(mySeqId, currProposeNum, toSendVal);
+                //System.out.println(me + " Accepted: " + status + " for " + currProposeNum);
                 if(status){
                     sendDecide(mySeqId, currProposeNum, toSendVal);
                     break;
@@ -294,6 +317,7 @@ public class Paxos implements PaxosRMI, Runnable{
         currInst.status.state = State.Decided;
         currInst.status.v = req.v;
         dones[req.portId] = req.maxDone;
+        //System.out.println(me + " Decided for " + req.instId);
 
         mutex.unlock();
         return new Response(true);
