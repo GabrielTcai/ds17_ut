@@ -32,7 +32,7 @@ public class Paxos implements PaxosRMI, Runnable{
     Map<Integer, Instance> allInst;
     int seqId;
     Object seqVal;
-    final int MAJORITY = peers.length/2 + 1;
+    final int MAJORITY;
     int[] dones;
 
     class Instance{
@@ -64,12 +64,13 @@ public class Paxos implements PaxosRMI, Runnable{
         this.unreliable = new AtomicBoolean(false);
 
         // Your initialization code here
+        MAJORITY = peers.length/2 + 1;
         allInst = new HashMap<Integer, Instance>();
         seqId = -1;
         seqVal = null;
         dones = new int[ports.length];
         for(int i = 0; i < ports.length; i++){
-            dones[i] = Integer.MIN_VALUE;
+            dones[i] = -1;
         }
 
         // register peers, do not modify this part
@@ -168,7 +169,7 @@ public class Paxos implements PaxosRMI, Runnable{
                     break;
                 }
             }
-            if(Status(mySeqId).state == State.Decided) break;
+            if(Status(mySeqId) != null && Status(mySeqId).state == State.Decided) break;
         }
     }
 
@@ -388,7 +389,14 @@ public class Paxos implements PaxosRMI, Runnable{
      */
     public retStatus Status(int seq){
         // Your code here
-        return allInst.get(seq).status;
+        if(allInst.containsKey(seq)){
+            return allInst.get(seq).status;
+        } else {
+            //System.out.println("Sequence not found: " + seq);
+            //return null;
+            return new retStatus(State.Pending, null);
+        }
+
 
     }
 
