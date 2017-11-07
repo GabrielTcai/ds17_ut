@@ -194,12 +194,34 @@ public class Paxos implements PaxosRMI, Runnable{
     }
 
     private boolean sendAccept(int mySeqId, int currProposeNum, Object toSendVal){
-        for()
+        int acceptNum = 0;
+        for(int i = 0; i < ports.length; i++){
+            Response currResp;
+            if(i == me){
+                currResp = Accept(new Request(mySeqId, currProposeNum, toSendVal));
+            } else{
+                currResp = call("Accept", new Request(mySeqId, currProposeNum, toSendVal), i);
+            }
 
+            if(currResp != null && currResp.stat == true) acceptNum++;
+        }
 
+        if(acceptNum >= MAJORITY){
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    private void sendDecide(){
+    private void sendDecide(int mySeqId, int currProposeNum, Object toSendVal){
+        for(int i = 0; i < ports.length; i++){
+            //Response currResp;
+            if(i == me){
+                Decide(new Request(mySeqId, currProposeNum, toSendVal));
+            } else {
+                call("Decide", new Request(mySeqId, currProposeNum, toSendVal), i);
+            }
+        }
 
     }
 
@@ -253,6 +275,8 @@ public class Paxos implements PaxosRMI, Runnable{
         }
         Instance currInst = allInst.get(req.instId);
         currInst.status.state = State.Decided;
+        currInst.status.v = req.v;
+
         mutex.unlock();
         return new Response(true)；
     }
@@ -275,6 +299,11 @@ public class Paxos implements PaxosRMI, Runnable{
      */
     public int Max(){
         // Your code here
+        int max = -1;
+        for(Integer key : allInst.keySet()){
+            if(key > max) max = key;
+        }
+        return max;
     }
 
     /**
@@ -321,6 +350,7 @@ public class Paxos implements PaxosRMI, Runnable{
      */
     public retStatus Status(int seq){
         // Your code here
+        return allInst.get(seq).status;
 
     }
 
