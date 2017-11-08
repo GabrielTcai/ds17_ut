@@ -9,7 +9,12 @@ import java.io.Serializable;
 public class Response implements Serializable {
     static final long serialVersionUID=22L;
     // your data here
-
+    Integer value;
+    boolean err;
 
     // Your constructor and methods here
+    Response(Integer value, boolean err){
+        this.value = value;
+        this.err = err;
+    }
 }
